@@ -5,12 +5,10 @@ import Currency from '../../components/Currency';
 const Main = () => {
 
 	return (
-		<div>
+		<section className='main-section'>
             <Header />
-            Main
-            <Currency name="USD"/>
-            <Currency name="EUR"/>
-		</div>
+            <Currency />
+		</section>
 	);
 };
 

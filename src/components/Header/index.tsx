@@ -1,49 +1,42 @@
 import React, { useEffect, useState } from 'react';
-import { CourseNow } from '../../api';
+import { useCurrencyContext } from '../../CurrencyContext';
+import { CurrencyData } from '../../CurrencyContext';
 
 const Header = () => {
-  const [usdData, setUsdData] = useState<{ ask: string; bid: string } | null>(null);
-  const [eurData, setEurData] = useState<{ ask: string; bid: string } | null>(null);
+  const { value } = useCurrencyContext();
+  const [usdDataNow, setUsdDataNow] = useState<CurrencyData | null>(null);
+  const [eurDataNow, setEurDataNow] = useState<CurrencyData | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const result = await CourseNow();
-
-      if (result) {
-        const { data1, data2 } = result;
-        setUsdData(data1?.data || null);
-        setEurData(data2?.data || null);
-      }
-    };
-
-    fetchData();
-  }, []);
+    setUsdDataNow((value.usdData as CurrencyData));
+    setEurDataNow((value.eurData as CurrencyData));
+  }, [value]);  
 
   return (
-    <div>
+    <header className='header_wrapper'>
       <div>
-        <h3>USD:</h3>
-        {usdData ? (
+        <h3 className='header_currency-title'>USD:</h3>
+        {usdDataNow ? (
           <>
-            <pre>Продаж: {usdData.ask} грн.</pre>
-            <pre>Покупка: {usdData.bid} грн.</pre>
+            <p>Продаж: {parseFloat(usdDataNow.rateSell).toFixed(2)}грн.</p>
+            <p>Купівля: {parseFloat(usdDataNow.rateBuy).toFixed(2)}грн.</p>
           </>
         ) : (
-          <p>Загрузка курса USD ...</p>
+          <p>Завантаження обмінного курсу USD ...</p>
         )}
       </div>
       <div>
-        <h3>EUR:</h3>
-        {eurData ? (
+        <h3 className='header_currency-title'>EUR:</h3>
+        {eurDataNow ? (
           <>
-            <pre>Продаж:{eurData.ask} грн.</pre>
-            <pre>Покупка:{eurData.bid} грн.</pre>
+            <p>Продаж: {parseFloat(eurDataNow.rateSell).toFixed(2)}грн.</p>
+            <p>Купівля: {parseFloat(eurDataNow.rateBuy).toFixed(2)}грн.</p>
           </>
         ) : (
-          <p>Загрузка курса EUR ...</p>
+          <p>Завантаження обмінного курсу EUR ...</p>
         )}
       </div>
-    </div>
+    </header>
   );
 };
 

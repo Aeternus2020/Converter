@@ -1,41 +1,60 @@
 export async function CourseNow() {
-    try {
-      const storedUsdData = localStorage.getItem('USD') ?? '';
-      const storedEurData = localStorage.getItem('EUR') ?? '';
-      const shouldFetchUsdData = !storedUsdData || isDataStale(storedUsdData);
-      const shouldFetchEurData = !storedEurData || isDataStale(storedEurData);
+  try {
+    const storedUsdData = localStorage.getItem('USD');
+    const storedEurData = localStorage.getItem('EUR');
+    const shouldFetchUsdData = !storedUsdData || isDataStale(storedUsdData);
+    const shouldFetchEurData = !storedEurData || isDataStale(storedEurData);
 
-      // Выполнение запросов только при необходимости
-      const response1 = shouldFetchUsdData
-        ? await fetch('https://api.minfin.com.ua/mb/latest/f42b4998e82e31a81c657aef8ac9ac54f9c216a5/?currency=[USD]')
-        : null;
-  
-      const response2 = shouldFetchEurData
-        ? await fetch('https://api.minfin.com.ua/mb/latest/f42b4998e82e31a81c657aef8ac9ac54f9c216a5/?currency=[EUR]')
-        : null;
-  
-      const data1 = response1 ? await response1.json() : JSON.parse(storedUsdData);
-      const data2 = response2 ? await response2.json() : JSON.parse(storedEurData);
-  
-      localStorage.setItem('USD', JSON.stringify(data1));
-      localStorage.setItem('EUR', JSON.stringify(data2));
-  
-      return { data1, data2 };
-    } catch (error) {
-      console.error('Ошибка при получении данных:', error);
-      return null;
+    const lastFetchTime = localStorage.getItem('lastFetchTime');
+    const currentTime = new Date().getTime();
+
+    if (lastFetchTime && currentTime - parseInt(lastFetchTime) < 5 * 60 * 1000) {
+      console.log('Минуло менше 5 хвилин з часу останнього успішного запиту. Новий запит не виконується.');
+      return { USDdata: storedUsdData ? JSON.parse(storedUsdData) : null, EURdata: storedEurData ? JSON.parse(storedEurData) : null };
     }
+
+    if (shouldFetchUsdData || shouldFetchEurData) {
+      const response = await fetch('https://api.monobank.ua/bank/currency');
+
+      if (response.ok) {
+        const responseData = await response.json();
+        const USDdata = responseData[0];
+        const EURdata = responseData[1];
+
+        localStorage.setItem('USD', JSON.stringify(USDdata));
+        localStorage.setItem('EUR', JSON.stringify(EURdata));
+
+        localStorage.setItem('lastFetchTime', currentTime.toString());
+
+        return { USDdata, EURdata };
+      } else {
+        console.error('Помилка при отриманні даних від сервера:', response.status);
+        return null;
+      }
+    } else {
+      return { USDdata: storedUsdData ? JSON.parse(storedUsdData) : null, EURdata: storedEurData ? JSON.parse(storedEurData) : null };
+    }
+  } catch (error) {
+    console.error('Помилка при отриманні даних:', error);
+    return null;
   }
-  
-  function isDataStale(storedData: string) {
-    try {
-      const parsedData = JSON.parse(storedData);
-      const today = new Date().toISOString().split('T')[0];
-      return parsedData.data.date.split(' ')[0] !== today;
-    } catch (error) {
-      console.error('Ошибка при парсинге данных:', error);
+}
+
+function isDataStale(storedData: string | null) {
+  try {
+    if (!storedData) {
       return true;
     }
+
+    const parsedData = JSON.parse(storedData);
+    const today = new Date().toISOString().split('T')[0];
+
+    const dataDate = new Date(parsedData.date * 1000).toISOString().split('T')[0];
+
+    return dataDate !== today;
+  } catch (error) {
+    console.error('Помилка під час аналізу даних:', error);
+    return true;
   }
-  
-  
+}
+
